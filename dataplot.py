@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import optparse
 import matplotlib.pylab as pylab
@@ -32,6 +32,7 @@ def main():
     parser.add_option(      "--ylog", default=False, action="store_true", help="Use logscale for Y")
     parser.add_option(      "--legend", default="upper left", help="Set legend position (default \"upper left\")", metavar="POS")
     parser.add_option(      "--print-high", default=0, type="float", help="Print lines which Y values higher than N", metavar="N")
+    parser.add_option(      "--print-stats", default=False, action="store_true", help="Print statistics of all Y values")
     parser.add_option("-v", "--verbose", default=0, action="count", help="Be more verbose")
     (options, args) = parser.parse_args()
 
@@ -86,12 +87,12 @@ def main():
         pyplot.ylim([options.ymin, options.ymax])
     pyplot.legend(loc = "upper left")
 
-    print("Sum={:.1f}, average={:.1f}".format(total_y, total_y / index))
+    if options.print_stats:
+        print("Sum={:.1f}, average={:.1f}".format(total_y, total_y / index))
     
-    # save PNG
-    print "saving image %s..." % options.outfile
+    # Save image
+    print("Saving image to '{}'".format(options.outfile))
     pyplot.savefig(options.outfile, bbox_inches='tight', dpi=128)
-    print "done"
 
 
 # call main()
