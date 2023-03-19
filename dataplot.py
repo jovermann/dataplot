@@ -16,7 +16,7 @@ def main():
     """
     global options
     usage = "%(prog)s [options] FILES..."
-    version = "0.1.5"
+    version = "0.1.6"
     parser = argparse.ArgumentParser(usage = usage + "\n(Version " + version + ")")
     parser.add_argument("files", nargs="*", help="Files to process.")
     parser.add_argument("-o", "--outfile", default="out.png", help="Output image. Default is 'out.png'. PNG, JPG, PDF and others are supported.", metavar="FILE")
@@ -50,6 +50,8 @@ def main():
     index = 0
     total_y = 0
     for infile in options.files:
+        if options.verbose:
+            print("Reading file '{}'.".format(infile))
         with open(infile) as file:
             lines = file.readlines()
         if options.filter:
@@ -58,10 +60,10 @@ def main():
         yy = []
         for line in lines:
             data = re.findall("[+-]?[0-9.]+", line);
-            if options.verbose:
-                print(["[{}]={}".format(i, data[i]) for i in range(len(data))])
+            if options.verbose >= 2:
+                print(", ".join(["{}={}".format(i, data[i]) for i in range(len(data))]))
             if options.xcol >= len(data) or options.ycol > len(data):
-                print("Ignoring short line: '{}'".format(line.strip()))
+                print("Ignoring short line: '{}'.".format(line.strip()))
                 continue
             x = index
             if options.xcol >= 0:
@@ -93,11 +95,11 @@ def main():
     pyplot.legend(loc = "upper left")
 
     if options.print_stats:
-        print("Sum={:.1f}, average={:.1f}".format(total_y, total_y / index))
+        print("Sum={:.1f}, average={:.1f}.".format(total_y, total_y / index))
 
     # Save image
     if options.verbose:
-        print("Saving image to '{}'".format(options.outfile))
+        print("Saving image to '{}'.".format(options.outfile))
     pyplot.savefig(options.outfile, bbox_inches='tight', dpi=128)
 
 
