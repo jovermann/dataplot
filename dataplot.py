@@ -20,6 +20,25 @@ version = "0.2.1"
 
 options = None
 
+def calcHistogram(yy, binsize):
+    """Calculate histogram of yy values.
+    Return (xx, yy) where xx is the start of each bin and yy the number of items in the bin.
+    """
+    hist = {}
+    for y in yy:
+        bin = y // binsize
+        if bin in hist:
+            hist[bin] += 1
+        else:
+            hist[bin] = 1
+    xxout = []
+    yyout = []
+    for key, value in sorted(hist.items()):
+        xxout.append(key * binsize)
+        yyout.append(value)
+    return (xxout, yyout)
+
+
 def main():
     """Main entry point.
     """
@@ -44,12 +63,12 @@ Example: Plotting roundtrip times of ping:
     parser = argparse.ArgumentParser(usage = usage, epilog ="%(prog)s version {} *** Copyright (c) 2010-2023 Johannes Overmann *** https://github.com/jovermann/dataplot".format(version))
     parser.add_argument(      "--version", action="version", version=version)
     parser.add_argument("FILES", nargs="*", help="Files to process.")
-    parser.add_argument("-o", "--outfile", default="out.png", help="Output image. Default is 'out.png'. PNG, JPG, PDF and others are supported.", metavar="FILE")
+    parser.add_argument("-o", "--outfile", default="out.png", help="Output image. Default is 'out.png'. PNG, JPG, PDF and others are supported.", metavar="F")
     parser.add_argument("-x", "--xcol", default=-1, type=int, help="X column. Use -1 for 'index' (if no X column is present in file).", metavar="N")
     parser.add_argument("-y", "--ycol", default=[], action="append", help="Y column. Use -vv to figure out column indices of data.", metavar="N")
-    parser.add_argument("-c", "--colors", default="rbyg", help="Set colors. One character per graph. Try rbyg.", metavar="COLSTR")
-    parser.add_argument("-s", "--shapes", default="o", help="Set Dot shapes (try oO.,+x).", metavar="SHAPESTR")
-    parser.add_argument("-a", "--addstyle", default="", help="Add additional style to all graphs (use -a - to add lines).", metavar="STYLE")
+    parser.add_argument("-c", "--colors", default="rbyg", help="Set colors. One character per graph. Try rbyg.", metavar="C")
+    parser.add_argument("-s", "--shapes", default="o", help="Set dot shapes (try oO.,+x).", metavar="S")
+    parser.add_argument("-a", "--addstyle", default="", help="Add additional style to all graphs (use -a - to add lines).", metavar="S")
     parser.add_argument("-f", "--filter", default="", help="Only use lines which match regex RE.", metavar="RE")
     parser.add_argument(      "--num-regex", default="[+-]?[0-9.]+", help="Regex used to extrat numeric values in line.", metavar="RE")
     parser.add_argument(      "--xlog", default=False, action="store_true", help="Use logscale for X.")
@@ -58,7 +77,10 @@ Example: Plotting roundtrip times of ping:
     parser.add_argument(      "--ymin", default=0, type=float, help="Set Y range to MIN (float).", metavar="MIN")
     parser.add_argument(      "--ylog", default=False, action="store_true", help="Use logscale for Y.")
     parser.add_argument(      "--sort", default=False, action="store_true", help="Sort Y values. Only makes sense without --xcol.")
+    parser.add_argument(      "--hist", default=0, type=float, help="Build histogram over data with the specified binsize B. Try --bar and --alpha 0.5.", metavar="B")
     parser.add_argument(      "--legend", default="upper left", help="Set legend position (default \"upper left\").", metavar="POS")
+    parser.add_argument(      "--bar", action="store_true", help="Draw filled bars.")
+    parser.add_argument(      "--alpha", default=1.0, type=float, help="Set transparency. Useful for --bar with multiple plots.")
     parser.add_argument(      "--fig-width", default=15, type=float, help="Width of output image in inch at 100 dpi.", metavar="W")
     parser.add_argument(      "--fig-height", default=5, type=float, help="Height of output image in inch at 100 dpi.", metavar="H")
     parser.add_argument(      "--print-high", default=0, type=float, help="Print lines with Y values higher than N.", metavar="N")
@@ -66,7 +88,7 @@ Example: Plotting roundtrip times of ping:
     parser.add_argument("-v", "--verbose", default=0, action="count", help="Be more verbose.")
     options = parser.parse_args()
 
-    if len(options.files) == 0:
+    if len(options.FILES) == 0:
         parser.error("Please specify at least one file!")
 
     # Parse ycols.
@@ -90,7 +112,7 @@ Example: Plotting roundtrip times of ping:
     graphindex = 0
     index = 0
     total_y = 0
-    for infile in options.files:
+    for infile in options.FILES:
         if options.verbose:
             print("Reading file '{}'.".format(infile))
         with open(infile) as file:
@@ -122,15 +144,22 @@ Example: Plotting roundtrip times of ping:
             index += 1
 
         for i in range(len(yy)):
+            xxplot = xx
+            yyplot = yy[i]
             if options.sort:
-                yy[i] = sorted(yy[i])
+                yyplot = sorted(yyplot)
+            if options.hist > 0:
+                (xxplot, yyplot) = calcHistogram(yyplot, options.hist)
 
             color = options.colors[graphindex % len(options.colors)]
             shape = options.shapes[graphindex % len(options.shapes)]
             label = infile
             if len(yy) > 1 or (ycolnames[i] != "{}".format(options.ycol[i])):
                 label += "/" + ycolnames[i]
-            pyplot.plot(xx, yy[i], color + shape + options.addstyle, label = label)
+            if options.bar:
+                pyplot.bar(xxplot, yyplot, alpha=options.alpha, color=color, edgecolor=color, width=0.8*options.hist, label = label)
+            else:
+                pyplot.plot(xxplot, yyplot, color + shape + options.addstyle, alpha=options.alpha, label = label)
             graphindex += 1
 
     if options.xlog:
