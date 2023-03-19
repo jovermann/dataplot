@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+#
+# dataplot.py - Plot numerical data extracted from logfiles.
+#
+# Copyright (c) 2010-2023 Johannes Overmann
+#
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE or copy at https://www.boost.org/LICENSE_1_0.txt)
 
 import argparse
 import matplotlib.pylab as pylab
@@ -9,6 +16,8 @@ import sys
 import locale
 import re
 
+version = "0.2.1"
+
 options = None
 
 def main():
@@ -17,12 +26,12 @@ def main():
     global options
     usage = """%(prog)s [options] FILES...
 
-This program extracts numerical data from arbitrary text files, typically 
-logfiles. It plots the data in a graph which is written to a file in 
-PNG/JPG/PDF format. 
+This program extracts numerical data from arbitrary text files, typically
+logfiles. It plots the data in a graph which is written to a file in
+PNG/JPG/PDF format.
 Input lines are first optionally filtered with --filter. Each line forms a
 data row. Numeric values in each line are extracted using a regex
-(--num-regex). The X and Y values of each record are extracted from fixed 
+(--num-regex). The X and Y values of each record are extracted from fixed
 columns specified by --xcol and --ycol, respectively. When --xcol is not
 specified the row index (the line number in the file after filtering) is used
 as X value.
@@ -32,12 +41,12 @@ Example: Plotting roundtrip times of ping:
     dataplot.py -f time= -x 2 -y 4 -s . log.txt -o log.png
     Try adding --sort.
 """
-    version = "0.1.7"
-    parser = argparse.ArgumentParser(usage = usage + "\n(Version " + version + ")")
-    parser.add_argument("files", nargs="*", help="Files to process.")
+    parser = argparse.ArgumentParser(usage = usage, epilog ="%(prog)s version {} *** Copyright (c) 2010-2023 Johannes Overmann *** https://github.com/jovermann/dataplot".format(version))
+    parser.add_argument(      "--version", action="version", version=version)
+    parser.add_argument("FILES", nargs="*", help="Files to process.")
     parser.add_argument("-o", "--outfile", default="out.png", help="Output image. Default is 'out.png'. PNG, JPG, PDF and others are supported.", metavar="FILE")
     parser.add_argument("-x", "--xcol", default=-1, type=int, help="X column. Use -1 for 'index' (if no X column is present in file).", metavar="N")
-    parser.add_argument("-y", "--ycol", default=1, type=int, help="Y column. Use -vv to figure out column indices of data.", metavar="N")
+    parser.add_argument("-y", "--ycol", default=[], action="append", help="Y column. Use -vv to figure out column indices of data.", metavar="N")
     parser.add_argument("-c", "--colors", default="rbyg", help="Set colors. One character per graph. Try rbyg.", metavar="COLSTR")
     parser.add_argument("-s", "--shapes", default="o", help="Set Dot shapes (try oO.,+x).", metavar="SHAPESTR")
     parser.add_argument("-a", "--addstyle", default="", help="Add additional style to all graphs (use -a - to add lines).", metavar="STYLE")
@@ -60,10 +69,25 @@ Example: Plotting roundtrip times of ping:
     if len(options.files) == 0:
         parser.error("Please specify at least one file!")
 
+    # Parse ycols.
+    ycols = []
+    ycolnames = []
+    if len(options.ycol) == 0:
+        options.ycol = ["0"]
+    for i in range(len(options.ycol)):
+        fields = options.ycol[i].split("=", maxsplit=1)
+        if len(fields) == 1:
+            ycolnames.append("{}".format(options.ycol[i]))
+            ycols.append(int(fields[0]))
+        else:
+            ycolnames.append(fields[0])
+            ycols.append(int(fields[1]))
+    options.ycol = ycols
+
     pyplot.figure(figsize = (options.fig_width, options.fig_height))
 
     # Plot files
-    fileindex = 0
+    graphindex = 0
     index = 0
     total_y = 0
     for infile in options.files:
@@ -75,33 +99,39 @@ Example: Plotting roundtrip times of ping:
             lines = [l for l in lines if re.search(options.filter, l) != None]
         xx = []
         yy = []
+        for i in options.ycol:
+            yy.append([])
         for line in lines:
             data = re.findall(options.num_regex, line);
             if options.verbose >= 2:
                 print(", ".join(["{}={}".format(i, data[i]) for i in range(len(data))]))
-            if options.xcol >= len(data) or options.ycol > len(data):
+            if options.xcol >= len(data) or max(options.ycol) > len(data):
                 print("Ignoring short line: '{}'.".format(line.strip()))
                 continue
             x = index
             if options.xcol >= 0:
                 x = float(data[options.xcol])
             x = x / options.xdiv
-            y = float(data[options.ycol])
-            if options.print_high and (y >= options.print_high):
-                sys.stdout.write(line)
-            #y = x + y
             xx.append(x)
-            yy.append(y)
+            for i in range(len(yy)):
+                y = float(data[options.ycol[i]])
+                if options.print_high and (y >= options.print_high):
+                    sys.stdout.write(line)
+                yy[i].append(y)
+                total_y += y
             index += 1
-            total_y += y
 
-        if options.sort:
-            yy = sorted(yy)
+        for i in range(len(yy)):
+            if options.sort:
+                yy[i] = sorted(yy[i])
 
-        color = options.colors[fileindex % len(options.colors)]
-        shape = options.shapes[fileindex % len(options.shapes)]
-        pyplot.plot(xx, yy, color + shape + options.addstyle, label = infile)
-        fileindex += 1
+            color = options.colors[graphindex % len(options.colors)]
+            shape = options.shapes[graphindex % len(options.shapes)]
+            label = infile
+            if len(yy) > 1 or (ycolnames[i] != "{}".format(options.ycol[i])):
+                label += "/" + ycolnames[i]
+            pyplot.plot(xx, yy[i], color + shape + options.addstyle, label = label)
+            graphindex += 1
 
     if options.xlog:
         pyplot.xscale("log")
@@ -109,6 +139,7 @@ Example: Plotting roundtrip times of ping:
         pyplot.yscale("log")
     if options.ymax != 0.0 or options.ymin != 0.0:
         pyplot.ylim([options.ymin, options.ymax])
+    pyplot.grid(color="lightgray", linestyle=":")
     pyplot.legend(loc = "upper left")
 
     if options.print_stats:
