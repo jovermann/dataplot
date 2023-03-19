@@ -15,17 +15,34 @@ def main():
     """Main entry point.
     """
     global options
-    usage = "%(prog)s [options] FILES..."
-    version = "0.1.6"
+    usage = """%(prog)s [options] FILES...
+
+This program extracts numerical data from arbitrary text files, typically 
+logfiles. It plots the data in a graph which is written to a file in 
+PNG/JPG/PDF format. 
+Input lines are first optionally filtered with --filter. Each line forms a
+data row. Numeric values in each line are extracted using a regex
+(--num-regex). The X and Y values of each record are extracted from fixed 
+columns specified by --xcol and --ycol, respectively. When --xcol is not
+specified the row index (the line number in the file after filtering) is used
+as X value.
+
+Example: Plotting roundtrip times of ping:
+    sudo ping example.com -c 1000 -i 0.001 > log.txt
+    dataplot.py -f time= -x 2 -y 4 -s . log.txt -o log.png
+    Try adding --sort.
+"""
+    version = "0.1.7"
     parser = argparse.ArgumentParser(usage = usage + "\n(Version " + version + ")")
     parser.add_argument("files", nargs="*", help="Files to process.")
     parser.add_argument("-o", "--outfile", default="out.png", help="Output image. Default is 'out.png'. PNG, JPG, PDF and others are supported.", metavar="FILE")
     parser.add_argument("-x", "--xcol", default=-1, type=int, help="X column. Use -1 for 'index' (if no X column is present in file).", metavar="N")
-    parser.add_argument("-y", "--ycol", default=1, type=int, help="Y column. Use -v to first to figure out column indices of data.", metavar="N")
+    parser.add_argument("-y", "--ycol", default=1, type=int, help="Y column. Use -vv to figure out column indices of data.", metavar="N")
     parser.add_argument("-c", "--colors", default="rbyg", help="Set colors. One character per graph. Try rbyg.", metavar="COLSTR")
     parser.add_argument("-s", "--shapes", default="o", help="Set Dot shapes (try oO.,+x).", metavar="SHAPESTR")
     parser.add_argument("-a", "--addstyle", default="", help="Add additional style to all graphs (use -a - to add lines).", metavar="STYLE")
     parser.add_argument("-f", "--filter", default="", help="Only use lines which match regex RE.", metavar="RE")
+    parser.add_argument(      "--num-regex", default="[+-]?[0-9.]+", help="Regex used to extrat numeric values in line.", metavar="RE")
     parser.add_argument(      "--xlog", default=False, action="store_true", help="Use logscale for X.")
     parser.add_argument(      "--xdiv", default=1.0, type=float, help="Divide X values by N (float).", metavar="N")
     parser.add_argument(      "--ymax", default=0, type=float, help="Set Y range to MAX (float).", metavar="MAX")
@@ -59,7 +76,7 @@ def main():
         xx = []
         yy = []
         for line in lines:
-            data = re.findall("[+-]?[0-9.]+", line);
+            data = re.findall(options.num_regex, line);
             if options.verbose >= 2:
                 print(", ".join(["{}={}".format(i, data[i]) for i in range(len(data))]))
             if options.xcol >= len(data) or options.ycol > len(data):
