@@ -6,9 +6,10 @@
 #
 # Distributed under the Boost Software License, Version 1.0.
 # (See accompanying file LICENSE or copy at https://www.boost.org/LICENSE_1_0.txt)
+#
+# This works with Python 2.7 and 3.x.
 
 import argparse
-import matplotlib.pylab as pylab
 import matplotlib.pyplot as pyplot
 import numpy
 import math
@@ -16,7 +17,7 @@ import sys
 import locale
 import re
 
-version = "0.2.1"
+version = "0.2.2"
 
 options = None
 
@@ -97,7 +98,7 @@ Example: Plotting roundtrip times of ping:
     if len(options.ycol) == 0:
         options.ycol = ["0"]
     for i in range(len(options.ycol)):
-        fields = options.ycol[i].split("=", maxsplit=1)
+        fields = options.ycol[i].split("=", 1)
         if len(fields) == 1:
             ycolnames.append("{}".format(options.ycol[i]))
             ycols.append(int(fields[0]))
