@@ -11,10 +11,7 @@
 
 import argparse
 import matplotlib.pyplot as pyplot
-import numpy
-import math
 import sys
-import locale
 import re
 
 version = "0.2.2"
