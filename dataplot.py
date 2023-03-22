@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
-#
-# dataplot.py - Plot numerical data extracted from logfiles.
-#
-# Copyright (c) 2010-2023 Johannes Overmann
-#
-# Distributed under the Boost Software License, Version 1.0.
-# (See accompanying file LICENSE or copy at https://www.boost.org/LICENSE_1_0.txt)
-#
-# This works with Python 2.7 and 3.x.
+"""dataplot.py - Plot numerical data extracted from logfiles.
 
-import argparse
-import matplotlib.pyplot as pyplot
+Copyright (c) 2010-2023 Johannes Overmann
+
+Distributed under the Boost Software License, Version 1.0.
+(See accompanying file LICENSE or copy at https://www.boost.org/LICENSE_1_0.txt)
+
+This works with Python 2.7 and 3.x.
+"""
 import sys
 import re
+import argparse
+from matplotlib import pyplot
 
-version = "0.2.2"
-
-options = None
+VERSION = "0.2.2"
 
 def calcHistogram(yy, binsize):
     """Calculate histogram of yy values.
@@ -24,11 +21,11 @@ def calcHistogram(yy, binsize):
     """
     hist = {}
     for y in yy:
-        bin = y // binsize
-        if bin in hist:
-            hist[bin] += 1
+        x= y // binsize
+        if x in hist:
+            hist[x] += 1
         else:
-            hist[bin] = 1
+            hist[x] = 1
     xxout = []
     yyout = []
     for key, value in sorted(hist.items()):
@@ -40,7 +37,6 @@ def calcHistogram(yy, binsize):
 def main():
     """Main entry point.
     """
-    global options
     usage = """%(prog)s [options] FILES...
 
 This program extracts numerical data from arbitrary text files, typically
@@ -58,8 +54,8 @@ Example: Plotting roundtrip times of ping:
     dataplot.py -f time= -x 2 -y 4 -s . log.txt -o log.png
     Try adding --sort.
 """
-    parser = argparse.ArgumentParser(usage = usage, epilog ="%(prog)s version {} *** Copyright (c) 2010-2023 Johannes Overmann *** https://github.com/jovermann/dataplot".format(version))
-    parser.add_argument(      "--version", action="version", version=version)
+    parser = argparse.ArgumentParser(usage = usage, epilog ="%(prog)s version {} *** Copyright (c) 2010-2023 Johannes Overmann *** https://github.com/jovermann/dataplot".format(VERSION))
+    parser.add_argument(      "--version", action="version", version=VERSION)
     parser.add_argument("FILES", nargs="*", help="Files to process.")
     parser.add_argument("-o", "--outfile", default="out.png", help="Output image. Default is 'out.png'. PNG, JPG, PDF and others are supported.", metavar="F")
     parser.add_argument("-x", "--xcol", default=-1, type=int, help="X column. Use -1 for 'index' (if no X column is present in file).", metavar="N")
@@ -116,13 +112,13 @@ Example: Plotting roundtrip times of ping:
         with open(infile) as file:
             lines = file.readlines()
         if options.filter:
-            lines = [l for l in lines if re.search(options.filter, l) != None]
+            lines = [l for l in lines if re.search(options.filter, l) is not None]
         xx = []
         yy = []
         for i in options.ycol:
             yy.append([])
         for line in lines:
-            data = re.findall(options.num_regex, line);
+            data = re.findall(options.num_regex, line)
             if options.verbose >= 2:
                 print(", ".join(["{}={}".format(i, data[i]) for i in range(len(data))]))
             if options.xcol >= len(data) or max(options.ycol) > len(data):
@@ -181,4 +177,3 @@ Example: Plotting roundtrip times of ping:
 # call main()
 if __name__ == "__main__":
     main()
-
