@@ -14,7 +14,7 @@ import argparse
 from matplotlib import pyplot
 from matplotlib import ticker
 
-VERSION = "0.2.3"
+VERSION = "0.2.4"
 
 def calcHistogram(yy, binsize):
     """Calculate histogram of yy values.
@@ -35,6 +35,15 @@ def calcHistogram(yy, binsize):
     return (xxout, yyout)
 
 
+def isValidFloat(s):
+    """Check whether string s is a valid floating point (or integer) value.
+    """
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 def main():
     """Main entry point.
     """
@@ -45,10 +54,14 @@ logfiles. It plots the data in a graph which is written to a file in
 PNG/JPG/PDF format.
 Input lines are first optionally filtered with --filter. Each line forms a
 data row. Numeric values in each line are extracted using a regex
-(--num-regex). The X and Y values of each record are extracted from fixed
-columns specified by --xcol and --ycol, respectively. When --xcol is not
+(--num-regex) and a float validator.
+The X and Y values of each record are extracted from fixed columns
+specified by --xcol and --ycol, respectively. When --xcol is not
 specified the row index (the line number in the file after filtering) is used
 as X value.
+
+Use -vv to see the actual float values and their indices to determine the
+indices for --xcol and --ycol.
 
 Example: Plotting roundtrip times of ping:
     sudo ping example.com -c 1000 -i 0.001 > log.txt
@@ -112,7 +125,7 @@ Example: Plotting roundtrip times of ping:
     for infile in options.FILES:
         if options.verbose:
             print("Reading file '{}'.".format(infile))
-        with open(infile) as file:
+        with open(infile, errors="replace") as file:
             lines = file.readlines()
         if options.filter:
             lines = [l for l in lines if re.search(options.filter, l) is not None]
@@ -121,10 +134,13 @@ Example: Plotting roundtrip times of ping:
         for i in options.ycol:
             yy.append([])
         for line in lines:
-            data = re.findall(options.num_regex, line)
+            datastr = re.findall(options.num_regex, line)
+            data = [float(x) for x in datastr if isValidFloat(x)]
+            if len(data) == 0:
+                continue
             if options.verbose >= 2:
                 print(", ".join(["{}={}".format(i, data[i]) for i in range(len(data))]))
-            if options.xcol >= len(data) or max(options.ycol) > len(data):
+            if options.xcol >= len(data) or max(options.ycol) >= len(data):
                 print("Ignoring short line: '{}'.".format(line.strip()))
                 continue
             x = index
