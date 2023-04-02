@@ -12,8 +12,9 @@ import sys
 import re
 import argparse
 from matplotlib import pyplot
+from matplotlib import ticker
 
-VERSION = "0.2.2"
+VERSION = "0.2.3"
 
 def calcHistogram(yy, binsize):
     """Calculate histogram of yy values.
@@ -70,6 +71,8 @@ Example: Plotting roundtrip times of ping:
     parser.add_argument(      "--ymax", default=0, type=float, help="Set Y range to MAX (float).", metavar="MAX")
     parser.add_argument(      "--ymin", default=0, type=float, help="Set Y range to MIN (float).", metavar="MIN")
     parser.add_argument(      "--ylog", default=False, action="store_true", help="Use logscale for Y.")
+    parser.add_argument(      "--xticks", default=0, type=float, help="Set X tick increment.", metavar="N")
+    parser.add_argument(      "--yticks", default=0, type=float, help="Set Y tick increment.", metavar="N")
     parser.add_argument(      "--sort", default=False, action="store_true", help="Sort Y values. Only makes sense without --xcol.")
     parser.add_argument(      "--hist", default=0, type=float, help="Build histogram over data with the specified binsize B. Try --bar and --alpha 0.5.", metavar="B")
     parser.add_argument(      "--legend", default="upper left", help="Set legend position (default \"upper left\").", metavar="POS")
@@ -162,6 +165,10 @@ Example: Plotting roundtrip times of ping:
         pyplot.yscale("log")
     if options.ymax != 0.0 or options.ymin != 0.0:
         pyplot.ylim([options.ymin, options.ymax])
+    if options.xticks:
+        pyplot.gca().xaxis.set_major_locator(ticker.MultipleLocator(options.xticks))
+    if options.yticks:
+        pyplot.gca().yaxis.set_major_locator(ticker.MultipleLocator(options.yticks))
     pyplot.grid(color="lightgray", linestyle=":")
     pyplot.legend(loc = "upper left")
 
